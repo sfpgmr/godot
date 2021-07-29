@@ -322,7 +322,7 @@ Variant GDScriptFunction::call(GDScriptInstance *p_instance, const Variant **p_a
 
 					if (!argument_types[i].is_type(*p_args[i], true)) {
 						if (argument_types[i].is_type(Variant(), true)) {
-							memnew_placement(&stack[i], Variant);
+							memnew_placement(&stack[i], Variant(*p_args[i]));
 							continue;
 						} else {
 							r_err.error = Variant::CallError::CALL_ERROR_INVALID_ARGUMENT;
