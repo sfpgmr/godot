@@ -1236,6 +1236,30 @@
 		<member name="rendering/mesh_storage/split_stream" type="bool" setter="" getter="" default="false">
 			On import, mesh vertex data will be split into two streams within a single vertex buffer, one for position data and the other for interleaved attributes data. Recommended to be enabled if targeting mobile devices. Requires manual reimport of meshes after toggling.
 		</member>
+		<member name="rendering/portals/advanced/flip_imported_portals" type="bool" setter="" getter="" default="false">
+			The default convention is for portal normals to point outward (face outward) from the source room.
+			If you accidentally build your level with portals facing the wrong way, this setting can fix the problem.
+			It will flip named portal meshes (i.e. [code]-portal[/code]) on the initial convertion to [Portal] nodes.
+		</member>
+		<member name="rendering/portals/debug/logging" type="bool" setter="" getter="" default="true">
+			Show conversion logs.
+			[b]Note:[/b] This will automatically be disabled in exports.
+		</member>
+		<member name="rendering/portals/gameplay/use_signals" type="bool" setter="" getter="" default="true">
+			If [code]true[/code], gameplay callbacks will be sent as [code]signals[/code]. If [code]false[/code], they will be sent as [code]notifications[/code].
+		</member>
+		<member name="rendering/portals/optimize/remove_danglers" type="bool" setter="" getter="" default="true">
+			If enabled, while merging meshes, the system will also attempt to remove [Spatial] nodes that no longer have any children.
+			Reducing the number of [Node]s in the scene tree can make traversal more efficient, but can be switched off in case you wish to use empty [Spatial]s for markers or some other purpose.
+		</member>
+		<member name="rendering/portals/pvs/pvs_logging" type="bool" setter="" getter="" default="false">
+			Show logs during PVS generation.
+			[b]Note:[/b] This will automatically be disabled in exports.
+		</member>
+		<member name="rendering/portals/pvs/use_simple_pvs" type="bool" setter="" getter="" default="false">
+			Uses a simplified method of generating PVS (potentially visible set) data. The results may not be accurate where more than one portal join adjacent rooms.
+			[b]Note:[/b] Generally you should only use this option if you encounter bugs when it is set to [code]false[/code], i.e. there are problems with the default method.
+		</member>
 		<member name="rendering/quality/depth/hdr" type="bool" setter="" getter="" default="true">
 			If [code]true[/code], allocates the main framebuffer with high dynamic range. High dynamic range allows the use of [Color] values greater than 1.
 			[b]Note:[/b] Only available on the GLES3 backend.
@@ -1270,13 +1294,16 @@
 			Sets the number of MSAA samples to use. MSAA is used to reduce aliasing around the edges of polygons. A higher MSAA value results in smoother edges but can be significantly slower on some hardware.
 			[b]Note:[/b] MSAA is not available on HTML5 export using the GLES2 backend.
 		</member>
+		<member name="rendering/quality/filters/sharpen_intensity" type="float" setter="" getter="" default="0.0">
+			If set to a value greater than [code]0.0[/code], contrast-adaptive sharpening will be applied to the 3D viewport. This has a low performance cost and can be used to recover some of the sharpness lost from using FXAA. Values around [code]0.5[/code] generally give the best results. See also [member rendering/quality/filters/use_fxaa].
+		</member>
 		<member name="rendering/quality/filters/use_debanding" type="bool" setter="" getter="" default="false">
 			If [code]true[/code], uses a fast post-processing filter to make banding significantly less visible. In some cases, debanding may introduce a slightly noticeable dithering pattern. It's recommended to enable debanding only when actually needed since the dithering pattern will make lossless-compressed screenshots larger.
 			[b]Note:[/b] Only available on the GLES3 backend. [member rendering/quality/depth/hdr] must also be [code]true[/code] for debanding to be effective.
 			[b]Note:[/b] There are known issues with debanding breaking rendering on mobile platforms. Due to this, it is recommended to leave this option disabled when targeting mobile platforms.
 		</member>
 		<member name="rendering/quality/filters/use_fxaa" type="bool" setter="" getter="" default="false">
-			Enables FXAA in the root Viewport. FXAA is a popular screen-space antialiasing method, which is fast but will make the image look blurry, especially at lower resolutions. It can still work relatively well at large resolutions such as 1440p and 4K.
+			Enables FXAA in the root Viewport. FXAA is a popular screen-space antialiasing method, which is fast but will make the image look blurry, especially at lower resolutions. It can still work relatively well at large resolutions such as 1440p and 4K. Some of the lost sharpness can be recovered by enabling contrast-adaptive sharpening (see [member rendering/quality/filters/sharpen_intensity]).
 		</member>
 		<member name="rendering/quality/filters/use_nearest_mipmap_filter" type="bool" setter="" getter="" default="false">
 			If [code]true[/code], uses nearest-neighbor mipmap filtering when using mipmaps (also called "bilinear filtering"), which will result in visible seams appearing between mipmap stages. This may increase performance in mobile as less memory bandwidth is used. If [code]false[/code], linear mipmap filtering (also called "trilinear filtering") is used.

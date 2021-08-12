@@ -1496,11 +1496,11 @@ Array VisualServer::_get_array_from_surface(uint32_t p_format, PoolVector<uint8_
 						for (int j = 0; j < p_vertex_len; j++) {
 							const int8_t *t = (const int8_t *)&r[j * total_elem_size + offsets[i]];
 							Vector2 enc(t[0] / 127.0f, t[1] / 127.0f);
-							Vector3 dec = oct_to_tangent(enc, &w[j * 3 + 2]);
+							Vector3 dec = oct_to_tangent(enc, &w[j * 4 + 3]);
 
-							w[j * 3 + 0] = dec.x;
-							w[j * 3 + 1] = dec.y;
-							w[j * 3 + 2] = dec.z;
+							w[j * 4 + 0] = dec.x;
+							w[j * 4 + 1] = dec.y;
+							w[j * 4 + 2] = dec.z;
 						}
 					} else {
 						PoolVector<float>::Write w = arr.write();
@@ -1508,11 +1508,11 @@ Array VisualServer::_get_array_from_surface(uint32_t p_format, PoolVector<uint8_
 						for (int j = 0; j < p_vertex_len; j++) {
 							const int16_t *t = (const int16_t *)&r[j * total_elem_size + offsets[i]];
 							Vector2 enc(t[0] / 32767.0f, t[1] / 32767.0f);
-							Vector3 dec = oct_to_tangent(enc, &w[j * 3 + 2]);
+							Vector3 dec = oct_to_tangent(enc, &w[j * 4 + 3]);
 
-							w[j * 3 + 0] = dec.x;
-							w[j * 3 + 1] = dec.y;
-							w[j * 3 + 2] = dec.z;
+							w[j * 4 + 0] = dec.x;
+							w[j * 4 + 1] = dec.y;
+							w[j * 4 + 2] = dec.z;
 						}
 					}
 				} else {
@@ -1995,6 +1995,7 @@ void VisualServer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("viewport_set_msaa", "viewport", "msaa"), &VisualServer::viewport_set_msaa);
 	ClassDB::bind_method(D_METHOD("viewport_set_use_fxaa", "viewport", "fxaa"), &VisualServer::viewport_set_use_fxaa);
 	ClassDB::bind_method(D_METHOD("viewport_set_use_debanding", "viewport", "debanding"), &VisualServer::viewport_set_use_debanding);
+	ClassDB::bind_method(D_METHOD("viewport_set_sharpen_intensity", "viewport", "intensity"), &VisualServer::viewport_set_sharpen_intensity);
 	ClassDB::bind_method(D_METHOD("viewport_set_hdr", "viewport", "enabled"), &VisualServer::viewport_set_hdr);
 	ClassDB::bind_method(D_METHOD("viewport_set_usage", "viewport", "usage"), &VisualServer::viewport_set_usage);
 	ClassDB::bind_method(D_METHOD("viewport_get_render_info", "viewport", "info"), &VisualServer::viewport_get_render_info);
@@ -2594,6 +2595,14 @@ VisualServer::VisualServer() {
 	ProjectSettings::get_singleton()->set_custom_property_info("rendering/batching/lights/max_join_items", PropertyInfo(Variant::INT, "rendering/batching/lights/max_join_items", PROPERTY_HINT_RANGE, "0,512"));
 	ProjectSettings::get_singleton()->set_custom_property_info("rendering/batching/parameters/item_reordering_lookahead", PropertyInfo(Variant::INT, "rendering/batching/parameters/item_reordering_lookahead", PROPERTY_HINT_RANGE, "0,256"));
 	ProjectSettings::get_singleton()->set_custom_property_info("rendering/batching/precision/uv_contract_amount", PropertyInfo(Variant::INT, "rendering/batching/precision/uv_contract_amount", PROPERTY_HINT_RANGE, "0,10000"));
+
+	// Portal rendering settings
+	GLOBAL_DEF("rendering/portals/pvs/use_simple_pvs", false);
+	GLOBAL_DEF("rendering/portals/pvs/pvs_logging", false);
+	GLOBAL_DEF("rendering/portals/gameplay/use_signals", true);
+	GLOBAL_DEF("rendering/portals/optimize/remove_danglers", true);
+	GLOBAL_DEF("rendering/portals/debug/logging", true);
+	GLOBAL_DEF("rendering/portals/advanced/flip_imported_portals", false);
 }
 
 VisualServer::~VisualServer() {

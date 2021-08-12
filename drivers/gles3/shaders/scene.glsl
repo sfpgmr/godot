@@ -225,12 +225,12 @@ void light_compute(vec3 N, vec3 L, vec3 V, vec3 light_color, float roughness, in
 		vec3 H = normalize(V + L);
 		float cNdotH = max(dot(N, H), 0.0);
 		float shininess = exp2(15.0 * (1.0 - roughness) + 1.0) * 0.25;
-		float blinn = pow(cNdotH, shininess) * cNdotL;
-		blinn *= (shininess + 8.0) * (1.0 / (8.0 * M_PI));
+		float blinn = pow(cNdotH, shininess);
+		blinn *= (shininess + 2.0) * (1.0 / (8.0 * M_PI));
 		specular_brdf_NL = blinn;
 #endif
 
-		specular += specular_brdf_NL * light_color * (1.0 / M_PI);
+		specular += specular_brdf_NL * light_color;
 	}
 }
 
@@ -1036,6 +1036,11 @@ LIGHT_SHADER_CODE
 	float NdotV = dot(N, V);
 	float cNdotV = max(NdotV, 0.0);
 
+/* Make a default specular mode SPECULAR_SCHLICK_GGX. */
+#if !defined(SPECULAR_DISABLED) && !defined(SPECULAR_SCHLICK_GGX) && !defined(SPECULAR_BLINN) && !defined(SPECULAR_PHONG) && !defined(SPECULAR_TOON)
+#define SPECULAR_SCHLICK_GGX
+#endif
+
 #if defined(DIFFUSE_BURLEY) || defined(SPECULAR_BLINN) || defined(SPECULAR_SCHLICK_GGX) || defined(LIGHT_USE_CLEARCOAT)
 	vec3 H = normalize(V + L);
 #endif
@@ -1122,11 +1127,11 @@ LIGHT_SHADER_CODE
 
 		//normalized blinn
 		float shininess = exp2(15.0 * (1.0 - roughness) + 1.0) * 0.25;
-		float blinn = pow(cNdotH, shininess) * cNdotL;
-		blinn *= (shininess + 8.0) * (1.0 / (8.0 * M_PI));
+		float blinn = pow(cNdotH, shininess);
+		blinn *= (shininess + 2.0) * (1.0 / (8.0 * M_PI)); // Normalized NDF and Geometric term
 		float intensity = blinn;
 
-		specular_light += light_color * intensity * specular_blob_intensity * attenuation;
+		specular_light += light_color * intensity * specular_blob_intensity * attenuation * diffuse_color * specular;
 
 #elif defined(SPECULAR_PHONG)
 
@@ -1134,10 +1139,10 @@ LIGHT_SHADER_CODE
 		float cRdotV = max(0.0, dot(R, V));
 		float shininess = exp2(15.0 * (1.0 - roughness) + 1.0) * 0.25;
 		float phong = pow(cRdotV, shininess);
-		phong *= (shininess + 8.0) * (1.0 / (8.0 * M_PI));
-		float intensity = (phong) / max(4.0 * cNdotV * cNdotL, 0.75);
+		phong *= (shininess + 1.0) * (1.0 / (8.0 * M_PI)); // Normalized NDF and Geometric term
+		float intensity = phong;
 
-		specular_light += light_color * intensity * specular_blob_intensity * attenuation;
+		specular_light += light_color * intensity * specular_blob_intensity * attenuation * diffuse_color * specular;
 
 #elif defined(SPECULAR_TOON)
 
@@ -1882,6 +1887,8 @@ FRAGMENT_SHADER_CODE
 			ref_vec = normalize((radiance_inverse_xform * vec4(ref_vec, 0.0)).xyz);
 			vec3 radiance = textureDualParaboloid(radiance_map, ref_vec, roughness) * bg_energy;
 			env_reflection_light = radiance;
+			float horizon = min(1.0 + dot(ref_vec, normal), 1.0);
+			env_reflection_light *= horizon * horizon;
 		}
 	}
 #ifndef USE_LIGHTMAP
