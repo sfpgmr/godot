@@ -1,5 +1,5 @@
 /*************************************************************************/
-/*  editor_spin_slider.h                                                 */
+/*  portal_occlusion_culler.h                                            */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
@@ -28,88 +28,62 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
-#ifndef EDITOR_SPIN_SLIDER_H
-#define EDITOR_SPIN_SLIDER_H
+#ifndef PORTAL_OCCLUSION_CULLER_H
+#define PORTAL_OCCLUSION_CULLER_H
 
-#include "scene/gui/line_edit.h"
-#include "scene/gui/range.h"
-#include "scene/gui/texture_rect.h"
+class PortalRenderer;
+#include "portal_types.h"
 
-class EditorSpinSlider : public Range {
-	GDCLASS(EditorSpinSlider, Range);
-
-	String label;
-	int updown_offset;
-	bool hover_updown;
-	bool mouse_hover;
-
-	TextureRect *grabber;
-	int grabber_range;
-
-	bool mouse_over_spin;
-	bool mouse_over_grabber;
-	bool mousewheel_over_grabber;
-
-	bool grabbing_grabber;
-	int grabbing_from;
-	float grabbing_ratio;
-
-	bool grabbing_spinner_attempt;
-	bool grabbing_spinner;
-
-	bool read_only;
-	float grabbing_spinner_dist_cache;
-	Vector2 grabbing_spinner_mouse_pos;
-	double pre_grab_value;
-
-	LineEdit *value_input;
-	bool value_input_just_closed;
-
-	void _grabber_gui_input(const Ref<InputEvent> &p_event);
-	void _value_input_closed();
-	void _value_input_entered(const String &);
-	void _value_focus_exited();
-	bool hide_slider;
-	bool flat;
-
-	bool use_custom_label_color;
-	Color custom_label_color;
-
-	void _evaluate_input_text();
-
-	void _draw_spin_slider();
-
-protected:
-	void _notification(int p_what);
-	void _gui_input(const Ref<InputEvent> &p_event);
-	static void _bind_methods();
-	void _grabber_mouse_entered();
-	void _grabber_mouse_exited();
-	void _focus_entered();
+class PortalOcclusionCuller {
+	enum {
+		MAX_SPHERES = 64,
+	};
 
 public:
-	String get_tooltip(const Point2 &p_pos) const;
+	PortalOcclusionCuller();
+	void prepare(PortalRenderer &p_portal_renderer, const VSRoom &p_room, const Vector3 &pt_camera, const LocalVector<Plane> &p_planes, const Plane *p_near_plane) {
+		prepare_generic(p_portal_renderer, p_room._occluder_pool_ids, pt_camera, p_planes, p_near_plane);
+	}
 
-	String get_text_value() const;
-	void set_label(const String &p_label);
-	String get_label() const;
+	void prepare_generic(PortalRenderer &p_portal_renderer, const LocalVector<uint32_t, uint32_t> &p_occluder_pool_ids, const Vector3 &pt_camera, const LocalVector<Plane> &p_planes, const Plane *p_near_plane);
+	bool cull_aabb(const AABB &p_aabb) const {
+		if (!_num_spheres) {
+			return false;
+		}
 
-	void set_hide_slider(bool p_hide);
-	bool is_hiding_slider() const;
+		return cull_sphere(p_aabb.get_center(), p_aabb.size.length() * 0.5);
+	}
+	bool cull_sphere(const Vector3 &p_occludee_center, real_t p_occludee_radius) const;
 
-	void set_read_only(bool p_enable);
-	bool is_read_only() const;
+private:
+	// if a sphere is entirely in front of any of the culling planes, it can't be seen so returns false
+	bool is_sphere_culled(const Vector3 &p_pos, real_t p_radius, const LocalVector<Plane> &p_planes, const Plane *p_near_plane) const {
+		if (p_near_plane) {
+			real_t dist = p_near_plane->distance_to(p_pos);
+			if (dist > p_radius) {
+				return true;
+			}
+		}
 
-	void set_flat(bool p_enable);
-	bool is_flat() const;
+		for (unsigned int p = 0; p < p_planes.size(); p++) {
+			real_t dist = p_planes[p].distance_to(p_pos);
+			if (dist > p_radius) {
+				return true;
+			}
+		}
 
-	void set_custom_label_color(bool p_use_custom_label_color, Color p_custom_label_color);
+		return false;
+	}
 
-	void setup_and_show() { _focus_entered(); }
-	LineEdit *get_line_edit() { return value_input; }
+	// only a number of the spheres in the scene will be chosen to be
+	// active based on their distance to the camera, screen space etc.
+	Occlusion::Sphere _spheres[MAX_SPHERES];
+	real_t _sphere_distances[MAX_SPHERES];
+	real_t _sphere_closest_dist = 0.0;
+	int _num_spheres = 0;
+	int _max_spheres = 8;
 
-	virtual Size2 get_minimum_size() const;
-	EditorSpinSlider();
+	Vector3 _pt_camera;
 };
 
-#endif // EDITOR_SPIN_SLIDER_H
+#endif // PORTAL_OCCLUSION_CULLER_H

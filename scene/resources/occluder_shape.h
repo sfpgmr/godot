@@ -1,5 +1,5 @@
 /*************************************************************************/
-/*  editor_spin_slider.h                                                 */
+/*  occluder_shape.h                                                     */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
@@ -28,88 +28,59 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
-#ifndef EDITOR_SPIN_SLIDER_H
-#define EDITOR_SPIN_SLIDER_H
+#ifndef OCCLUDER_SHAPE_H
+#define OCCLUDER_SHAPE_H
 
-#include "scene/gui/line_edit.h"
-#include "scene/gui/range.h"
-#include "scene/gui/texture_rect.h"
+#include "core/math/plane.h"
+#include "core/resource.h"
+#include "core/vector.h"
 
-class EditorSpinSlider : public Range {
-	GDCLASS(EditorSpinSlider, Range);
-
-	String label;
-	int updown_offset;
-	bool hover_updown;
-	bool mouse_hover;
-
-	TextureRect *grabber;
-	int grabber_range;
-
-	bool mouse_over_spin;
-	bool mouse_over_grabber;
-	bool mousewheel_over_grabber;
-
-	bool grabbing_grabber;
-	int grabbing_from;
-	float grabbing_ratio;
-
-	bool grabbing_spinner_attempt;
-	bool grabbing_spinner;
-
-	bool read_only;
-	float grabbing_spinner_dist_cache;
-	Vector2 grabbing_spinner_mouse_pos;
-	double pre_grab_value;
-
-	LineEdit *value_input;
-	bool value_input_just_closed;
-
-	void _grabber_gui_input(const Ref<InputEvent> &p_event);
-	void _value_input_closed();
-	void _value_input_entered(const String &);
-	void _value_focus_exited();
-	bool hide_slider;
-	bool flat;
-
-	bool use_custom_label_color;
-	Color custom_label_color;
-
-	void _evaluate_input_text();
-
-	void _draw_spin_slider();
+class OccluderShape : public Resource {
+	GDCLASS(OccluderShape, Resource);
+	OBJ_SAVE_TYPE(OccluderShape);
+	RES_BASE_EXTENSION("occ");
+	RID _shape;
 
 protected:
-	void _notification(int p_what);
-	void _gui_input(const Ref<InputEvent> &p_event);
 	static void _bind_methods();
-	void _grabber_mouse_entered();
-	void _grabber_mouse_exited();
-	void _focus_entered();
+
+	RID get_shape() const { return _shape; }
+	OccluderShape(RID p_shape);
 
 public:
-	String get_tooltip(const Point2 &p_pos) const;
+	virtual RID get_rid() const { return _shape; }
+	~OccluderShape();
 
-	String get_text_value() const;
-	void set_label(const String &p_label);
-	String get_label() const;
-
-	void set_hide_slider(bool p_hide);
-	bool is_hiding_slider() const;
-
-	void set_read_only(bool p_enable);
-	bool is_read_only() const;
-
-	void set_flat(bool p_enable);
-	bool is_flat() const;
-
-	void set_custom_label_color(bool p_use_custom_label_color, Color p_custom_label_color);
-
-	void setup_and_show() { _focus_entered(); }
-	LineEdit *get_line_edit() { return value_input; }
-
-	virtual Size2 get_minimum_size() const;
-	EditorSpinSlider();
+	virtual void notification_enter_world(RID p_scenario) = 0;
+	virtual void update_shape_to_visual_server() = 0;
+	void update_transform_to_visual_server(const Transform &p_global_xform);
+	void update_active_to_visual_server(bool p_active);
+	void notification_exit_world();
+	virtual Transform center_node(const Transform &p_global_xform, const Transform &p_parent_xform, real_t p_snap) = 0;
 };
 
-#endif // EDITOR_SPIN_SLIDER_H
+class OccluderShapeSphere : public OccluderShape {
+	GDCLASS(OccluderShapeSphere, OccluderShape);
+
+	// We bandit a plane to store position / radius
+	Vector<Plane> _spheres;
+	const real_t _min_radius = 0.1;
+
+protected:
+	static void _bind_methods();
+
+public:
+	void set_spheres(const Vector<Plane> &p_spheres);
+	Vector<Plane> get_spheres() const { return _spheres; }
+
+	void set_sphere_position(int p_idx, const Vector3 &p_position);
+	void set_sphere_radius(int p_idx, real_t p_radius);
+
+	virtual void notification_enter_world(RID p_scenario);
+	virtual void update_shape_to_visual_server();
+	virtual Transform center_node(const Transform &p_global_xform, const Transform &p_parent_xform, real_t p_snap);
+
+	OccluderShapeSphere();
+};
+
+#endif // OCCLUDER_SHAPE_H
