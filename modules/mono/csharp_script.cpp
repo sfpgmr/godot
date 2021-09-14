@@ -39,9 +39,11 @@
 #include "core/project_settings.h"
 
 #ifdef TOOLS_ENABLED
+#include "core/os/keyboard.h"
 #include "editor/bindings_generator.h"
 #include "editor/csharp_project.h"
 #include "editor/editor_node.h"
+#include "editor/editor_settings.h"
 #include "editor/node_dock.h"
 #endif
 
@@ -1178,6 +1180,7 @@ void CSharpLanguage::_editor_init_callback() {
 
 	// Enable it as a plugin
 	EditorNode::add_editor_plugin(godotsharp_editor);
+	ED_SHORTCUT("mono/build_solution", TTR("Build Solution"), KEY_MASK_ALT | KEY_B);
 	godotsharp_editor->enable_plugin();
 
 	get_singleton()->godotsharp_editor = godotsharp_editor;
@@ -1628,6 +1631,28 @@ Variant::Type CSharpInstance::get_property_type(const StringName &p_name, bool *
 		*r_is_valid = false;
 
 	return Variant::NIL;
+}
+
+void CSharpInstance::get_method_list(List<MethodInfo> *p_list) const {
+	if (!script->is_valid() || !script->script_class)
+		return;
+
+	GD_MONO_SCOPE_THREAD_ATTACH;
+
+	// TODO: We're filtering out constructors but there may be other methods unsuitable for explicit calls.
+	GDMonoClass *top = script->script_class;
+
+	while (top && top != script->native) {
+		const Vector<GDMonoMethod *> &methods = top->get_all_methods();
+		for (int i = 0; i < methods.size(); ++i) {
+			MethodInfo minfo = methods[i]->get_method_info();
+			if (minfo.name != CACHED_STRING_NAME(dotctor)) {
+				p_list->push_back(minfo);
+			}
+		}
+
+		top = top->get_parent_class();
+	}
 }
 
 bool CSharpInstance::has_method(const StringName &p_method) const {
@@ -3034,10 +3059,19 @@ void CSharpScript::get_script_method_list(List<MethodInfo> *p_list) const {
 
 	GD_MONO_SCOPE_THREAD_ATTACH;
 
-	// TODO: Filter out things unsuitable for explicit calls, like constructors.
-	const Vector<GDMonoMethod *> &methods = script_class->get_all_methods();
-	for (int i = 0; i < methods.size(); ++i) {
-		p_list->push_back(methods[i]->get_method_info());
+	// TODO: We're filtering out constructors but there may be other methods unsuitable for explicit calls.
+	GDMonoClass *top = script_class;
+
+	while (top && top != native) {
+		const Vector<GDMonoMethod *> &methods = top->get_all_methods();
+		for (int i = 0; i < methods.size(); ++i) {
+			MethodInfo minfo = methods[i]->get_method_info();
+			if (minfo.name != CACHED_STRING_NAME(dotctor)) {
+				p_list->push_back(methods[i]->get_method_info());
+			}
+		}
+
+		top = top->get_parent_class();
 	}
 }
 
