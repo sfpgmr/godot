@@ -485,19 +485,6 @@ void EditorNode::_notification(int p_what) {
 		} break;
 
 		case NOTIFICATION_READY: {
-			{
-				_initializing_addons = true;
-				Vector<String> addons;
-				if (ProjectSettings::get_singleton()->has_setting("editor_plugins/enabled")) {
-					addons = ProjectSettings::get_singleton()->get("editor_plugins/enabled");
-				}
-
-				for (int i = 0; i < addons.size(); i++) {
-					set_addon_plugin_enabled(addons[i], true);
-				}
-				_initializing_addons = false;
-			}
-
 			VisualServer::get_singleton()->viewport_set_hide_scenario(get_scene_root()->get_viewport_rid(), true);
 			VisualServer::get_singleton()->viewport_set_hide_canvas(get_scene_root()->get_viewport_rid(), true);
 			VisualServer::get_singleton()->viewport_set_disable_environment(get_viewport()->get_viewport_rid(), true);
@@ -849,6 +836,18 @@ void EditorNode::_sources_changed(bool p_exist) {
 			load_scene(defer_load_scene);
 			defer_load_scene = "";
 		}
+
+		// Only enable addons once resources have been imported
+		_initializing_addons = true;
+		Vector<String> addons;
+		if (ProjectSettings::get_singleton()->has_setting("editor_plugins/enabled")) {
+			addons = ProjectSettings::get_singleton()->get("editor_plugins/enabled");
+		}
+
+		for (int i = 0; i < addons.size(); i++) {
+			set_addon_plugin_enabled(addons[i], true);
+		}
+		_initializing_addons = false;
 	}
 }
 
@@ -1985,7 +1984,6 @@ void EditorNode::_edit_current() {
 
 	Object *prev_inspected_object = get_inspector()->get_edited_object();
 
-	bool capitalize = bool(EDITOR_GET("interface/inspector/capitalize_properties"));
 	bool disable_folding = bool(EDITOR_GET("interface/inspector/disable_folding"));
 	bool is_resource = current_obj->is_class("Resource");
 	bool is_node = current_obj->is_class("Node");
@@ -2043,7 +2041,6 @@ void EditorNode::_edit_current() {
 
 		if (current_obj->is_class("ScriptEditorDebuggerInspectedObject")) {
 			editable_warning = TTR("This is a remote object, so changes to it won't be kept.\nPlease read the documentation relevant to debugging to better understand this workflow.");
-			capitalize = false;
 			disable_folding = true;
 		} else if (current_obj->is_class("MultiNodeEdit")) {
 			Node *scene = get_edited_scene();
@@ -2079,10 +2076,6 @@ void EditorNode::_edit_current() {
 	}
 
 	inspector_dock->set_warning(editable_warning);
-
-	if (get_inspector()->is_capitalize_paths_enabled() != capitalize) {
-		get_inspector()->set_enable_capitalize_paths(capitalize);
-	}
 
 	if (get_inspector()->is_using_folding() == disable_folding) {
 		get_inspector()->set_use_folding(!disable_folding);
@@ -3279,10 +3272,6 @@ void EditorNode::_remove_edited_scene(bool p_change_tab) {
 	} else {
 		editor_data.add_edited_scene(-1);
 		new_index = 1;
-	}
-
-	if (editor_data.get_scene_path(old_index) != String()) {
-		ScriptEditor::get_singleton()->close_builtin_scripts_from_scene(editor_data.get_scene_path(old_index));
 	}
 
 	if (p_change_tab) {
