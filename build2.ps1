@@ -8,7 +8,7 @@ scons platform=windows target=release_debug -j8
 scons platform=windows target=debug -j8
 scons platform=windows tools=no target=release -j8
 scons platform=windows tools=no target=debug -j8
-if(((godot --version) -match  "^[0-9]+\.[0-9]+\.[^\.]+")){
+if (((& .\bin\godot.windows.opt.tools.64.exe --version) -match "^[0-9]+\.[0-9]+\.[^\.]+")) {
   $version = $Matches[0]
   $template_path = "$($env:USERPROFILE)\AppData\Roaming\Godot\templates\$($version)"
   if(!(Test-Path $template_path)){

@@ -1,9 +1,9 @@
 
 
-scons platform=windows tools=yes target=release_debug bits=64 -j8 use_lto=yes production=yes  
-scons platform=windows tools=yes target=debug  bits=64 -j8
-scons platform=windows tools=no target=release  bits=64 -j8 use_lto=yes production=yes
-scons platform=windows tools=no target=debug  bits=64 -j8
+# scons platform=windows tools=yes target=release_debug bits=64 -j8 use_lto=yes production=yes  
+# scons platform=windows tools=yes target=debug  bits=64 -j8
+# scons platform=windows tools=no target=release  bits=64 -j8 use_lto=yes production=yes
+# scons platform=windows tools=no target=debug  bits=64 -j8
 
 scons platform=x11 tools=yes target=release_debug  bits=64 -j8 use_llvm=yes use_lld=yes 
 scons platform=x11 tools=yes target=debug  bits=64 -j8 use_llvm=yes use_lld=yes 
